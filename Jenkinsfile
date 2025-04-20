@@ -2,9 +2,11 @@ pipeline {
     agent any
 
     environment {
-        DOCKER_IMAGE = 'mi-api-flask'
+        AWS_REGION = 'us-east-1'
+        AWS_ACCOUNT_ID = '203918886396'
+        ECR_REPO_NAME = 'mini-blog-backend'
+        DOCKER_IMAGE = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPO_NAME}"
         DOCKER_TAG = 'latest'
-        DOCKER_REGISTRY = 'docker.io'
     }
 
     stages {
@@ -19,27 +21,34 @@ pipeline {
             steps {
                 echo 'Construyendo imagen Docker...'
                 script {
-                    sh 'docker build -t $DOCKER_REGISTRY/$DOCKER_IMAGE:$DOCKER_TAG .'
+                    sh "docker build -t ${DOCKER_IMAGE}:${DOCKER_TAG} ."
                 }
             }
         }
 
-        stage('Empujar Imagen a DockerHub') {
+        stage('Login a Amazon ECR') {
             steps {
-                echo 'Empujando imagen a DockerHub...'
+                echo 'Autenticándose en Amazon ECR...'
                 script {
-                    // Login a DockerHub, si es necesario
-                    sh 'echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin'
-                    sh 'docker push $DOCKER_REGISTRY/$DOCKER_IMAGE:$DOCKER_TAG'
+                    sh "aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
+                }
+            }
+        }
+
+        stage('Empujar Imagen a Amazon ECR') {
+            steps {
+                echo 'Empujando imagen a Amazon ECR...'
+                script {
+                    sh "docker push ${DOCKER_IMAGE}:${DOCKER_TAG}"
                 }
             }
         }
 
         stage('Ejecutar Contenedor Docker') {
             steps {
-                echo 'Ejecutando el contenedor Docker...'
+                echo 'Ejecutando el contenedor desde imagen ECR...'
                 script {
-                    sh 'docker run -d -p 5000:5000 --name $DOCKER_IMAGE $DOCKER_REGISTRY/$DOCKER_IMAGE:$DOCKER_TAG'
+                    sh "docker run -d -p 5000:5000 --name mi-api-ecr ${DOCKER_IMAGE}:${DOCKER_TAG}"
                 }
             }
         }
@@ -53,8 +62,8 @@ pipeline {
 
     post {
         always {
-            // Limpiar el contenedor después de cada ejecución
-            sh 'docker ps -q -f "name=$DOCKER_IMAGE" | grep -q . && docker stop $DOCKER_IMAGE && docker rm $DOCKER_IMAGE'
+            // Limpiar el contenedor anterior
+            sh 'docker ps -q -f "name=mi-api-ecr" | grep -q . && docker stop mi-api-ecr && docker rm mi-api-ecr || true'
         }
     }
 }
