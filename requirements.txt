@@ -1,1 +1,6 @@
 Flask==2.2.5
+pymysql
+sqlalchemy
+flask_sqlalchemy
+python-dotenv
+

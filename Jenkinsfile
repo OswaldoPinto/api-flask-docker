@@ -48,7 +48,7 @@ pipeline {
             steps {
                 echo 'Ejecutando el contenedor desde imagen ECR...'
                 script {
-                    sh "docker run -d -p 5000:5000 --name mi-api-ecr ${DOCKER_IMAGE}:${DOCKER_TAG}"
+                    sh "docker run --env-file .env -d -p 5000:5000 --name mi-api-ecr ${DOCKER_IMAGE}:${DOCKER_TAG}"
                 }
             }
         }
@@ -60,11 +60,11 @@ pipeline {
         }
     }
 
-    post {
-        always {
-            // Limpiar el contenedor anterior
-            sh 'docker ps -q -f "name=mi-api-ecr" | grep -q . && docker stop mi-api-ecr && docker rm mi-api-ecr || true'
-        }
-    }
+#    post {
+#       always {
+#            // Limpiar el contenedor anterior
+#            sh 'docker ps -q -f "name=mi-api-ecr" | grep -q . && docker stop mi-api-ecr && docker rm mi-api-ecr || true'
+  #      }
+ #   }
 }
 
