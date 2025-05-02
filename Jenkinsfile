@@ -43,6 +43,14 @@ pipeline {
                 }
             }
         }
+	
+	post {
+	        always {
+           	 // Limpiar el contenedor anterior
+           		sh 'docker ps -q -f "name=mi-api-ecr" | grep -q . && docker stop mi-api-ecr && docker rm mi-api-ecr || true'
+        	}
+    	}
+
 
         stage('Ejecutar Contenedor Docker') {
             steps {
@@ -59,12 +67,6 @@ pipeline {
             }
         }
     }
-/*
-    post {
-       always {
-            // Limpiar el contenedor anterior
-            sh 'docker ps -q -f "name=mi-api-ecr" | grep -q . && docker stop mi-api-ecr && docker rm mi-api-ecr || true'
-        }
-    }*/
+
 }
 
